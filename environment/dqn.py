@@ -30,11 +30,11 @@ class ReplayMemory:
 
 
 class CheckersDQN(nn.module):
+    """Deep Q-Network for Checkers game using a simple CNN architecture."""
     def __init__(self):
-        """Initialize the DQN for Checkers."""
         super().__init__()
 
-        # Input size is 6 channels of 8x8 board
+        # input size is 6 channels of 8x8 board
         self.conv1 = nn.Conv2d(in_channels=6,
                                out_channels=32,
                                kernel_size=3,
@@ -67,8 +67,8 @@ class CheckersDQN(nn.module):
         x = self.pool1(F.relu(self.conv1(x)))
         x = self.pool2(F.relu(self.conv2(x)))
 
-        # flatten the tensor
-        x = x.view(-1, 64 * 2 * 2)  
+        # flatten the tensor while preserving the batch dimension
+        x = x.view(x.size(0), -1)  
 
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
