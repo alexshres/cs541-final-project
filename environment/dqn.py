@@ -29,7 +29,7 @@ class ReplayMemory:
         return len(self.memory)
 
 
-class CheckersDQN(nn.module):
+class CheckersDQN(nn.Module):
     """Deep Q-Network for Checkers game using a simple CNN architecture."""
     def __init__(self):
         super().__init__()
