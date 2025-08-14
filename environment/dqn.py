@@ -45,7 +45,7 @@ class CheckersDQN(nn.Module):
         self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
         # shape after pool1: (32, 4, 4)
         self.conv2 = nn.Conv2d(in_channels=32,
-                               out_channels=64,
+                               out_channels=32,
                                kernel_size=3,
                                stride=1,
                                padding=1)
@@ -55,8 +55,8 @@ class CheckersDQN(nn.Module):
         # shape after pool2: (64, 2, 2)
 
         # Fully connected layers
-        # Input size is 64 channels of 2x2 feature maps
-        self.fc1 = nn.Linear(64 * 2 * 2, 512)  
+        # Input size is 32 channels of 2x2 feature maps
+        self.fc1 = nn.Linear(32 * 2 * 2, 512)  
         # shape after fc1: (512)
 
         self.fc2 = nn.Linear(512, 256)
@@ -65,10 +65,14 @@ class CheckersDQN(nn.Module):
     def forward(self, x):
         """Forward pass through the DQN."""
         x = self.pool1(F.relu(self.conv1(x)))
+        print(f"Shape after conv1 and pool1: {x.shape}")
         x = self.pool2(F.relu(self.conv2(x)))
+        print(f"Shape after conv2 and pool2: {x.shape}")
 
         # flatten the tensor while preserving the batch dimension
-        x = x.view(x.size(0), -1)  
+        # TODO: need to update when updating using batch size > 1
+        x = x.view(-1)  
+        print(f"Shape after flattening: {x.shape}")
 
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))

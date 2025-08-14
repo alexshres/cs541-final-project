@@ -5,8 +5,10 @@ import dqn
 import torch 
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 
 from collections import namedtuple, deque
+from typing import Tuple
 
 BUFFER_SIZE = int(1e5)
 BATCH_SIZE = 64
@@ -14,7 +16,7 @@ GAMMA = 0.99
 TAU = 1e-3
 LR = 1e-4
 UPDATE_EVERY = 4
-EPSILON = 1.0
+EPSILON = 0.1 
 EPSILON_DECAY = 0.995
 EPSILON_MIN = 0.01
 UPDATE_EVERY = 4
@@ -48,21 +50,67 @@ class CheckersAgent:
                 self.learn(experiences, gamma=GAMMA)
 
 
-    def act(self, state, eps=EPSILON):
-        """Returns epsilon-greedy actions for given state."""
+    def act(self, state:torch.Tensor, legal_moves_mask:list, eps:float)-> int:
+        """Returns epsilon-greedy actions for given state.
+        Args:
+            state (torch.Tensor): Current state tensor.
+            legal_moves_mask (list): Mask of legal moves.
+            eps (float): Epsilon value for exploration.
+        Returns:
+            int: Action index to take.
+        """
+
         self.dqn_online.eval()
         with torch.no_grad():
             action_values = self.dqn_online(state)
 
+        # Apply legal moves mask to action values
+        valid_actions = action_values[legal_moves_mask]
 
-        # TODO NEED TO MASK THE ACTION VALUES FOR INVALID MOVES
-        # For now, we assume all actions are valid
         self.dqn_online.train()
         if random.random() > eps:
-            return np.argmax(action_values.data.numpy())
+            return int(np.argmax(valid_actions.data.numpy(), axis=None))
         else:
-            return random.choice(np.arange(self.dqn_online.fc2.out_features))
+            return int(random.choice(np.arange(self.dqn_online.fc2.out_features)[legal_moves_mask]))
 
 
-    def learn(self, experiences, gamma=GAMMA):
-        pass
+    def learn(self, experiences, gamma:float=GAMMA):
+        """Update value parameters using given batch of experience tuples.
+        Args:
+            experiences (Tuple[torch.Tensor]): tuple of Transition namedtuples.
+            gamma (float): Discount factor.
+        """
+
+        states, actions, rewards, next_states, dones = experiences
+
+        # detaching so no gradients are calculated for target network
+        q_targets_next = self.dqn_target(next_states).detach().max(1)[0].unsqueeze(1)
+
+        # compute Q targets for current states
+        # reward 0 if done
+        q_targets = rewards + (gamma * q_targets_next * (1 - dones))
+
+        q_expected = self.dqn_online(states).gather(1, actions)
+
+        # compute loss
+        loss = F.mse_loss(q_expected, q_targets)
+
+        self.optimizer.zero_grad()      # clear gradients
+        loss.backward()                 # backprop
+        self.optimizer.step()           # update weights
+
+        # update target network using a soft update
+        self.soft_update(self.dqn_online, self.dqn_target, TAU)
+
+
+    def soft_update(self, local_model, target_model, tau:float=TAU):
+        """Soft update model parameters. Slowly blends the weights of the local (online) model into the target model.
+        This helps stabilize training by keeping the target model consistent.
+
+        Args:
+            local_model (nn.Module): Local model to update.
+            target_model (nn.Module): Target model to update.
+            tau (float): Interpolation parameter.
+        """
+        for local_param, target_param in zip(local_model.parameters(), target_model.parameters()):
+            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)

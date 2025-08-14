@@ -1,5 +1,5 @@
 import torch
-from .bitboard import (
+from bitboard import (
     convert_game_to_bitboards,
     convert_bitboards_to_tensor,
 )

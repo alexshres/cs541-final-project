@@ -1,8 +1,9 @@
-from .game import reset_game, step
-from .moves import encode_move, decode_move, get_legal_moves_mask
-from .state import get_state_tensor
-from .minmax import minimax_move
-from .bitboard import convert_game_to_bitboards, convert_bitboards_to_tensor
+from game import reset_game, step
+from moves import encode_move, decode_move, get_legal_moves_mask
+from state import get_state_tensor
+from minmax import minimax_move
+from bitboard import convert_game_to_bitboards, convert_bitboards_to_tensor
+from dqn import CheckersDQN
 
 def test_bitboard_roundtrip(game):
     p1m, p1k, p2m, p2k, turn_flag = convert_game_to_bitboards(game)
@@ -47,5 +48,26 @@ def test_environment():
             print(f"Game over! Winner: {game.get_winner()}")  
             break
 
+def test_dqn():
+    print("=== TESTING DQN ===")
+    model = CheckersDQN()
+    print(f"DQN model structure: {model}")
+    game = reset_game()
+    state = get_state_tensor(game)
+
+    print(f"Initial state tensor shape: {state.shape}")
+    output = model(state)
+    print(f"Model output shape: {output.shape}")
+    valid_moves_list = game.get_possible_moves()
+    print(f"First possible move: {valid_moves_list[0]}")
+    encoded_move = encode_move(valid_moves_list[0])
+    print(f"Encoded move: {encoded_move}")
+
+    legal_moves_mask = get_legal_moves_mask(game)
+    import numpy as np
+    print(f"DQN model fc2 output features: {np.arange(model.fc2.out_features)}")
+    print(f"DQN model fc2 output features: {np.arange(model.fc2.out_features)[legal_moves_mask]}")
+
+
 if __name__ == "__main__":
-    test_environment()
+    test_dqn()
