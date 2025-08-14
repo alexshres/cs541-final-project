@@ -1,3 +1,8 @@
+import numpy as np
+import torch
+import agent as ag
+import game as g
+
 from game import reset_game, step
 from moves import encode_move, decode_move, get_legal_moves_mask
 from state import get_state_tensor
@@ -64,10 +69,44 @@ def test_dqn():
     print(f"Encoded move: {encoded_move}")
 
     legal_moves_mask = get_legal_moves_mask(game)
-    import numpy as np
+
     print(f"DQN model fc2 output features: {np.arange(model.fc2.out_features)}")
     print(f"DQN model fc2 output features: {np.arange(model.fc2.out_features)[legal_moves_mask]}")
 
+def test_agent():
+    print("=== TESTING AGENT ===")
+    agent = ag.CheckersAgent()
+    print(f"Agent initialized with DQN model: {agent.dqn_online}")
+
+    game = reset_game()
+    state = get_state_tensor(game)
+    legal_moves_mask = get_legal_moves_mask(game)
+
+    print(f"agent online fc2 output features: {np.arange(agent.dqn_online.fc2.out_features)[legal_moves_mask]}")
+
+    # Always add batch dimension for act, step, and learn
+    state_b = state.unsqueeze(0) if state.dim() == 3 else state
+    action_idx = agent.act(state_b, legal_moves_mask, eps=0.1)
+    print(f"Selected action idx: {action_idx}")
+
+    next_state, reward, done = g.step(game, action_idx)
+    next_state = get_state_tensor(next_state)
+    next_state_b = next_state.unsqueeze(0) if next_state.dim() == 3 else next_state
+    print(f"Next state shape: {next_state.shape}")
+    print(f"Next state batch shape: {next_state_b.shape}")
+
+    agent.step(state_b, action_idx, reward, next_state_b, done)
+
+    # Only call agent.learn() directly if not enough samples in memory
+    if len(agent.memory) <= ag.BATCH_SIZE:
+        print(f"Memory size: {len(agent.memory)}")
+        print("Learning from experience...")
+        action_b = torch.tensor([[action_idx]], dtype=torch.long)
+        reward_b = torch.tensor([[reward]], dtype=torch.float32)
+        done_b = torch.tensor([[done]], dtype=torch.float32)
+        agent.learn((state_b, action_b, reward_b, next_state_b, done_b), gamma=0.99)
+
+    print("Agent step completed.")
 
 if __name__ == "__main__":
-    test_dqn()
+    test_agent()

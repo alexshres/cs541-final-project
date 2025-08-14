@@ -9,9 +9,11 @@ import torch.nn.functional as F
 
 from collections import namedtuple, deque
 from typing import Tuple
+from state import get_state_tensor
 
 BUFFER_SIZE = int(1e5)
-BATCH_SIZE = 64
+BATCH_SIZE = 1 
+# BATCH_SIZE = 64
 GAMMA = 0.99
 TAU = 1e-3
 LR = 1e-4
@@ -39,6 +41,7 @@ class CheckersAgent:
 
     def step(self, state, action, reward, next_state, done):
         # Save experience in replay memory
+        # next_state = get_state_tensor(next_state)
         self.memory.push(state, action, reward, next_state, done)
 
         self.t_step = (self.t_step + 1) % UPDATE_EVERY
@@ -71,16 +74,23 @@ class CheckersAgent:
 
         self.dqn_online.eval()
         with torch.no_grad():
-            action_values = self.dqn_online(state)
+            action_values = self.dqn_online(state).squeeze()
 
-        # Apply legal moves mask to action values
-        valid_actions = action_values[legal_moves_mask]
+        # Convert legal_moves_mask (list of bools) to a torch.BoolTensor
+        mask = torch.tensor(legal_moves_mask, dtype=torch.bool)
+        action_values_masked = action_values.clone()
+        action_values_masked[~mask] = float('-inf')
 
         self.dqn_online.train()
         if random.random() > eps:
-            return int(np.argmax(valid_actions.data.numpy(), axis=None))
+            action = int(torch.argmax(action_values_masked).item())
+            print(f"Action greedily chosen is {action}")
         else:
-            return int(random.choice(np.arange(self.dqn_online.fc2.out_features)[legal_moves_mask]))
+            legal_indices = torch.where(mask)[0].numpy()
+            action = int(random.choice(legal_indices))
+            print(f"Action randomly chosen is {action}")
+
+        return action
 
 
     def learn(self, exp_tuple, gamma:float=GAMMA):
@@ -93,14 +103,17 @@ class CheckersAgent:
         states, actions, rewards, next_states, dones = exp_tuple
 
         # detaching so no gradients are calculated for target network
+        print(f"Next states shape: {next_states.shape}")
         q_targets_next = self.dqn_target(next_states).detach().max(1)[0].unsqueeze(1)
 
         # compute Q targets for current states
         # reward 0 if done
         q_targets = rewards + (gamma * q_targets_next * (1 - dones))
+        print(f"Q targets shape: {q_targets.shape}, Q targets: {q_targets}")
 
         #  expected Q values from online model
         q_expected = self.dqn_online(states).gather(1, actions)
+        print(f"Q expected shape: {q_expected.shape}, Q expected: {q_expected}")
 
         # compute loss
         loss = F.mse_loss(q_expected, q_targets)
