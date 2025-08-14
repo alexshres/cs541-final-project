@@ -1,6 +1,6 @@
 import math
 from copy import deepcopy
-from .moves import encode_move
+from moves import encode_move
 
 def evaluate(game):
     """Simple piece-count evaluation from the current player's perspective."""

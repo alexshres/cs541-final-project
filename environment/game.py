@@ -1,5 +1,5 @@
 from checkers.game import Game
-from .moves import decode_move
+from moves import decode_move
 
 def reset_game():
     """Start a new checkers game and return the game object."""
