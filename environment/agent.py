@@ -47,7 +47,16 @@ class CheckersAgent:
             # if enough samples available in memory, get random subset to learn
             if len(self.memory) > BATCH_SIZE:
                 experiences = self.memory.sample(BATCH_SIZE)
-                self.learn(experiences, gamma=GAMMA)
+
+                # converting list of Transitions to batches of tensors
+                batch = dqn.Transition(*zip(*experiences))
+                states = torch.stack(batch.state)
+                actions = torch.tensor(batch.action, dtype=torch.long).unsqueeze(1)
+                rewards = torch.tensor(batch.reward, dtype=torch.float32).unsqueeze(1)
+                next_states = torch.stack(batch.next_state)
+                dones = torch.tensor(batch.done, dtype=torch.float32).unsqueeze(1)
+
+                self.learn((states, actions, rewards, next_states, dones), gamma=GAMMA)
 
 
     def act(self, state:torch.Tensor, legal_moves_mask:list, eps:float)-> int:
@@ -74,14 +83,14 @@ class CheckersAgent:
             return int(random.choice(np.arange(self.dqn_online.fc2.out_features)[legal_moves_mask]))
 
 
-    def learn(self, experiences, gamma:float=GAMMA):
+    def learn(self, exp_tuple, gamma:float=GAMMA):
         """Update value parameters using given batch of experience tuples.
         Args:
             experiences (Tuple[torch.Tensor]): tuple of Transition namedtuples.
             gamma (float): Discount factor.
         """
 
-        states, actions, rewards, next_states, dones = experiences
+        states, actions, rewards, next_states, dones = exp_tuple
 
         # detaching so no gradients are calculated for target network
         q_targets_next = self.dqn_target(next_states).detach().max(1)[0].unsqueeze(1)
@@ -90,6 +99,7 @@ class CheckersAgent:
         # reward 0 if done
         q_targets = rewards + (gamma * q_targets_next * (1 - dones))
 
+        #  expected Q values from online model
         q_expected = self.dqn_online(states).gather(1, actions)
 
         # compute loss

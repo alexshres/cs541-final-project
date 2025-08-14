@@ -72,6 +72,7 @@ class CheckersDQN(nn.Module):
         # flatten the tensor while preserving the batch dimension
         # TODO: need to update when updating using batch size > 1
         x = x.view(-1)  
+        # x = x.view(x.size(0), -1)  # flatten the tensor
         print(f"Shape after flattening: {x.shape}")
 
         x = F.relu(self.fc1(x))
