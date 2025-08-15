@@ -108,5 +108,15 @@ def test_agent():
 
     print("Agent step completed.")
 
+def test_train():
+    print("=== TESTING TRAIN AGENT ===")
+    from train import train_agent, plot_metrics
+
+    scores, losses, mean_qs, game_lengths = train_agent(episodes=1000, timesteps=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99)
+
+    plot_metrics(scores, losses, mean_qs, game_lengths)
+
+
+
 if __name__ == "__main__":
-    test_agent()
+    test_train()

@@ -60,23 +60,20 @@ class CheckersDQN(nn.Module):
         # shape after fc1: (512)
 
         self.fc2 = nn.Linear(512, 256)
-        # shape after fc2: (256)
+
 
     def forward(self, x):
         """Forward pass through the DQN."""
         x = self.pool1(F.relu(self.conv1(x)))
-        print(f"Shape after conv1 and pool1: {x.shape}")
         x = self.pool2(F.relu(self.conv2(x)))
-        print(f"Shape after conv2 and pool2: {x.shape}")
 
         # flatten the tensor while preserving the batch dimension
         # for testing with batch size of 1
         # x = x.view(-1)  
         x = x.view(x.size(0), -1)  # flatten the tensor
-        print(f"Shape after flattening: {x.shape}")
 
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        x = self.fc2(x)
 
         return x
 

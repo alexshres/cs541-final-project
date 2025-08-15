@@ -12,16 +12,11 @@ from typing import Tuple
 from state import get_state_tensor
 
 BUFFER_SIZE = int(1e5)
-BATCH_SIZE = 1 
-# BATCH_SIZE = 64
+BATCH_SIZE = 32
 GAMMA = 0.99
 TAU = 1e-3
 LR = 1e-4
-UPDATE_EVERY = 4
-EPSILON = 0.1 
-EPSILON_DECAY = 0.995
-EPSILON_MIN = 0.01
-UPDATE_EVERY = 4
+UPDATE_EVERY = 20
 
 class CheckersAgent:
     """Interacts with and learns checkers game."""
@@ -46,6 +41,8 @@ class CheckersAgent:
 
         self.t_step = (self.t_step + 1) % UPDATE_EVERY
 
+        loss, mean_q = None, None
+
         if self.t_step == 0:
             # if enough samples available in memory, get random subset to learn
             if len(self.memory) > BATCH_SIZE:
@@ -59,8 +56,9 @@ class CheckersAgent:
                 next_states = torch.stack(batch.next_state)
                 dones = torch.tensor(batch.done, dtype=torch.float32).unsqueeze(1)
 
-                self.learn((states, actions, rewards, next_states, dones), gamma=GAMMA)
+                loss, mean_q = self.learn((states, actions, rewards, next_states, dones), gamma=GAMMA)
 
+        return loss, mean_q
 
     def act(self, state:torch.Tensor, legal_moves_mask:list, eps:float)-> int:
         """Returns epsilon-greedy actions for given state.
@@ -84,11 +82,9 @@ class CheckersAgent:
         self.dqn_online.train()
         if random.random() > eps:
             action = int(torch.argmax(action_values_masked).item())
-            print(f"Action greedily chosen is {action}")
         else:
             legal_indices = torch.where(mask)[0].numpy()
             action = int(random.choice(legal_indices))
-            print(f"Action randomly chosen is {action}")
 
         return action
 
@@ -103,17 +99,14 @@ class CheckersAgent:
         states, actions, rewards, next_states, dones = exp_tuple
 
         # detaching so no gradients are calculated for target network
-        print(f"Next states shape: {next_states.shape}")
         q_targets_next = self.dqn_target(next_states).detach().max(1)[0].unsqueeze(1)
 
         # compute Q targets for current states
         # reward 0 if done
         q_targets = rewards + (gamma * q_targets_next * (1 - dones))
-        print(f"Q targets shape: {q_targets.shape}, Q targets: {q_targets}")
 
         #  expected Q values from online model
         q_expected = self.dqn_online(states).gather(1, actions)
-        print(f"Q expected shape: {q_expected.shape}, Q expected: {q_expected}")
 
         # compute loss
         loss = F.mse_loss(q_expected, q_targets)
@@ -124,6 +117,8 @@ class CheckersAgent:
 
         # update target network using a soft update
         self.soft_update(self.dqn_online, self.dqn_target, TAU)
+
+        return loss.sum().item(), q_expected.mean().item()
 
 
     def soft_update(self, local_model, target_model, tau:float=TAU):
