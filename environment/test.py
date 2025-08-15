@@ -110,20 +110,13 @@ def test_agent():
 
 def test_train():
     print("=== TESTING TRAIN AGENT ===")
-    from train import train_agent
-    import matplotlib.pyplot as plt
+    from train import train_agent, plot_metrics
 
-    # Run a single episode for testing
-    scores = train_agent(episodes=1000, timesteps=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99)
+    scores, losses, mean_qs, game_lengths = train_agent(episodes=1000, timesteps=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99)
 
-    fig = plt.figure(figsize=(12, 6))
-    ax = fig.add_subplot(111)
-    ax.plot(np.arange(len(scores)), scores, label='Episode Scores')
-    ax.set_xlabel('Episode')
-    ax.set_ylabel('Score')
-    ax.set_title('Checkers Agent Training Scores')
-    ax.legend()
-    plt.show()
+    plot_metrics(scores, losses, mean_qs, game_lengths)
+
+
 
 if __name__ == "__main__":
     test_train()

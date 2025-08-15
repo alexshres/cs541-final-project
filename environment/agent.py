@@ -16,7 +16,7 @@ BATCH_SIZE = 32
 GAMMA = 0.99
 TAU = 1e-3
 LR = 1e-4
-UPDATE_EVERY = 4
+UPDATE_EVERY = 20
 
 class CheckersAgent:
     """Interacts with and learns checkers game."""
@@ -41,6 +41,8 @@ class CheckersAgent:
 
         self.t_step = (self.t_step + 1) % UPDATE_EVERY
 
+        loss, mean_q = None, None
+
         if self.t_step == 0:
             # if enough samples available in memory, get random subset to learn
             if len(self.memory) > BATCH_SIZE:
@@ -54,8 +56,9 @@ class CheckersAgent:
                 next_states = torch.stack(batch.next_state)
                 dones = torch.tensor(batch.done, dtype=torch.float32).unsqueeze(1)
 
-                self.learn((states, actions, rewards, next_states, dones), gamma=GAMMA)
+                loss, mean_q = self.learn((states, actions, rewards, next_states, dones), gamma=GAMMA)
 
+        return loss, mean_q
 
     def act(self, state:torch.Tensor, legal_moves_mask:list, eps:float)-> int:
         """Returns epsilon-greedy actions for given state.
@@ -115,7 +118,7 @@ class CheckersAgent:
         # update target network using a soft update
         self.soft_update(self.dqn_online, self.dqn_target, TAU)
 
-        return loss.sum().item()
+        return loss.sum().item(), q_expected.mean().item()
 
 
     def soft_update(self, local_model, target_model, tau:float=TAU):
