@@ -60,7 +60,7 @@ class CheckersDQN(nn.Module):
         # shape after fc1: (512)
 
         self.fc2 = nn.Linear(512, 256)
-        # shape after fc2: (256)
+
 
     def forward(self, x):
         """Forward pass through the DQN."""
@@ -73,7 +73,7 @@ class CheckersDQN(nn.Module):
         x = x.view(x.size(0), -1)  # flatten the tensor
 
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        x = self.fc2(x)
 
         return x
 

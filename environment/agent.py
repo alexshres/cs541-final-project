@@ -12,8 +12,7 @@ from typing import Tuple
 from state import get_state_tensor
 
 BUFFER_SIZE = int(1e5)
-BATCH_SIZE = 1 
-# BATCH_SIZE = 64
+BATCH_SIZE = 32
 GAMMA = 0.99
 TAU = 1e-3
 LR = 1e-4
@@ -115,6 +114,8 @@ class CheckersAgent:
 
         # update target network using a soft update
         self.soft_update(self.dqn_online, self.dqn_target, TAU)
+
+        return loss.sum().item()
 
 
     def soft_update(self, local_model, target_model, tau:float=TAU):
