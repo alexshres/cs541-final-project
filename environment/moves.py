@@ -21,6 +21,7 @@ def get_legal_moves_mask(game):
             mask[idx] = True
     return mask
 
+''' old version
 # determines which diagonal direction (0=up left, 1=up right, 2=down left, 3=down right)
 # a move goes on a checkers board based on its start and end square numbers (1–32).
 def direction_index(from_sq, to_sq):
@@ -30,3 +31,27 @@ def direction_index(from_sq, to_sq):
     if diff in (3, 4):   return 2  # down left
     if diff in (4, 5):   return 3  # down right
     return 0
+'''
+def direction_index(from_sq: int, to_sq: int) -> int:
+    diff = int(to_sq) - int(from_sq)
+    row = (int(from_sq) - 1) // 4           
+
+    if diff < 0:  # moving up (toward smaller indices)
+        # Odd rows (1,3,5,7) will use -4 and -5, like 22->18 (-4), 22->17 (-5)
+        # Even rows (0,2,4,6) will just flip them
+        left_diff, right_diff = (-4, -5) if (row % 2 == 1) else (-5, -4)
+        if diff == left_diff:  # up-left
+            return 0
+        if diff == right_diff: # up-right
+            return 1
+    else:       # moving down (toward larger indices)
+        # Odd rows +3 and +4 like 6->9 (+3), 6->10 (+4)
+        # Even rows +4 and +5
+        left_diff, right_diff = (+3, +4) if (row % 2 == 1) else (+4, +5)
+        if diff == left_diff:  # down-left
+            return 2
+        if diff == right_diff: # down-right
+            return 3
+
+    # only gets here if something is off 
+    raise ValueError(f"Unexpected move difference {diff} for from_sq {from_sq}")
