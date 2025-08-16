@@ -12,10 +12,10 @@ import game as g
 import moves as mv
 import state as st
 
-EPISODES = 5000
-TIMESTEPS = 2000
+EPISODES = 10000
+TIMESTEPS = 3000
 EPSILON = 1.0 
-EPSILON_DECAY = 0.9999
+EPSILON_DECAY = 0.9995
 EPSILON_MIN = 0.01
 
 
@@ -84,8 +84,8 @@ def train_agent(episodes=EPISODES,
             print(f"Average score over last 100 episodes: {avg_score:.3f}")
             
             # model checkpoint
-            if (episode + 1) % 500 == 0:
-                torch.save(agent.dqn_online.state_dict(), f'checkpoints/checkers_dqn_episode_{episode+1}.pth')
+            if (episode + 1) % 5000 == 0:
+                torch.save(agent.dqn_online.state_dict(), f'checkpoints/checkers_dqn_episode_{episode+1}_{EPISODES}.pth')
 
     return scores, losses, mean_qs, game_lengths
 
@@ -122,6 +122,12 @@ def plot_metrics(scores, losses, mean_qs, game_lengths):
 
     plot_moving_average(axs[3], x_lengths, game_lengths, 100, 'Game Length per Episode', 'Episodes', 'Number of Moves')
 
-    plt.tight_layout(rect=[0, 0.03, 1, 0.96])
-    plt.savefig('./training_metrics.png')
+    plt.tight_layout(rect=[0, 0.03, 1, 0.96]) # type: ignore
+    plt.savefig(f'./training_metrics_{EPISODES}_{ag.UPDATE_EVERY}.png')
     # plt.show()
+
+
+if __name__ == "__main__":
+    scores, losses, mean_qs, game_lengths = train_agent()
+    plot_metrics(scores, losses, mean_qs, game_lengths)
+    print("Training complete. Metrics plotted.")

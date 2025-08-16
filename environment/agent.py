@@ -16,27 +16,45 @@ BATCH_SIZE = 32
 GAMMA = 0.99
 TAU = 1e-3
 LR = 1e-4
-UPDATE_EVERY = 20
+UPDATE_EVERY = 32
 
 class CheckersAgent:
     """Interacts with and learns checkers game."""
 
-    def __init__(self):
+    def __init__(self, checkpoint_path=None):
         """Initialize agent."""
 
         self.dqn_online = dqn.CheckersDQN()
         self.dqn_target = dqn.CheckersDQN()
         self.optimizer = optim.Adam(self.dqn_online.parameters(), lr=LR)
 
+        if checkpoint_path:
+            self.dqn_online.load_state_dict(torch.load(checkpoint_path))
+            self.dqn_online.eval()  # setting online network to eval mode for inference
+            print(f"Loaded DQN model from {checkpoint_path}")
+
+        # copy weights from online to target network
+        self.dqn_target.load_state_dict(self.dqn_online.state_dict())
+        self.dqn_target.eval()  # set target network to eval mode
+
+
         # replay memory
         self.memory = dqn.ReplayMemory(BUFFER_SIZE)
 
-        # Initialize time step
         self.t_step = 0  
 
     def step(self, state, action, reward, next_state, done):
-        # Save experience in replay memory
-        # next_state = get_state_tensor(next_state)
+        """Add experience to memory and learn if enough samples are available.
+           Returns loss and mean Q value for logging.
+        Args:
+            state (torch.Tensor): Current state tensor.
+            action (int): Action index taken.
+            reward (float): Reward received.
+            next_state (torch.Tensor): Next state tensor.
+            done (bool): Whether the game is over.
+        Returns:
+            Tuple[float, float]: Loss and mean Q value.
+        """
         self.memory.push(state, action, reward, next_state, done)
 
         self.t_step = (self.t_step + 1) % UPDATE_EVERY

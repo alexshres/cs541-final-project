@@ -6,7 +6,7 @@ import game as g
 from game import reset_game, step
 from moves import encode_move, decode_move, get_legal_moves_mask
 from state import get_state_tensor
-from minmax import minimax_move
+from minimax import minimax_move
 from bitboard import convert_game_to_bitboards, convert_bitboards_to_tensor
 from dqn import CheckersDQN
 
