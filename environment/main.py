@@ -7,7 +7,7 @@ def main():
     print("=== Starting Checkers Game Simulation ===")
     MODEL_PATH = "./checkpoints/checkers_dqn_episode_10000_10000.pth"
     NUM_GAMES = 100
-    MINIMAX_DEPTH = 3
+    MINIMAX_DEPTH = 5
 
     play.evaluate_agents(MODEL_PATH, num_games=NUM_GAMES, minimax_depth=MINIMAX_DEPTH)
 
